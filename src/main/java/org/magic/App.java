@@ -2,16 +2,17 @@ package org.magic;
 
 import org.jnativehook.GlobalScreen;
 import org.jnativehook.NativeHookException;
-import org.jnativehook.keyboard.NativeKeyEvent;
-import org.jnativehook.keyboard.NativeKeyListener;
 
+import java.awt.*;
 import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
 public class App {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws AWTException {
         setLoggingLevel(Level.OFF);
 
         try {
@@ -24,7 +25,11 @@ public class App {
             System.exit(1);
         }
 
-        GlobalScreen.addNativeKeyListener(new GlobalListener());
+        Robot robot = new Robot();
+        ExecutorService service = Executors.newCachedThreadPool();
+        GlobalListener listener = new GlobalListener(robot, service);
+
+        GlobalScreen.addNativeKeyListener(listener);
     }
 
     public static void setLoggingLevel(Level level) {
@@ -33,35 +38,5 @@ public class App {
 
         Arrays.stream(Logger.getLogger("").getHandlers())
                 .forEach(handler -> handler.setLevel(level));
-    }
-}
-
-class GlobalListener implements NativeKeyListener {
-    public void nativeKeyPressed(NativeKeyEvent e) {
-        System.out.println("Key Pressed: " + NativeKeyEvent.getKeyText(e.getKeyCode()));
-
-        if (e.getKeyCode() == NativeKeyEvent.VC_ESCAPE) {
-            try {
-                GlobalScreen.unregisterNativeHook();
-            } catch (NativeHookException ex) {
-                ex.printStackTrace();
-            }
-        }
-
-        if (e.getKeyCode() == NativeKeyEvent.VC_SPACE) {
-            App.setLoggingLevel(Level.ALL);
-        }
-
-        if (e.getKeyCode() == NativeKeyEvent.VC_N) {
-            App.setLoggingLevel(Level.OFF);
-        }
-    }
-
-    public void nativeKeyReleased(NativeKeyEvent e) {
-        System.out.println("Key Released: " + NativeKeyEvent.getKeyText(e.getKeyCode()));
-    }
-
-    public void nativeKeyTyped(NativeKeyEvent e) {
-        System.out.println("Key Typed: " + NativeKeyEvent.getKeyText(e.getKeyCode()));
     }
 }
