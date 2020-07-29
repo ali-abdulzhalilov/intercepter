@@ -1,7 +1,8 @@
 package org.magic;
 
 import org.jnativehook.GlobalScreen;
-import org.jnativehook.NativeHookException;
+import org.magic.controller.GlobalListener;
+import org.magic.service.ActionService;
 
 import java.awt.*;
 import java.util.Arrays;
@@ -10,24 +11,19 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-
 public class App {
-    public static void main(String[] args) throws AWTException {
+
+    public static void run() throws AWTException {
+        // props
+        // beans
+        // injection
+
         setLoggingLevel(Level.OFF);
 
-        try {
-            GlobalScreen.registerNativeHook();
-        } catch (NativeHookException ex) {
-            System.err.println("There was a problem registering the native hook.");
-            System.err.println(ex.getMessage());
-            ex.printStackTrace();
-
-            System.exit(1);
-        }
-
         Robot robot = new Robot();
-        ExecutorService service = Executors.newCachedThreadPool();
-        GlobalListener listener = new GlobalListener(robot, service);
+        ExecutorService executorService = Executors.newCachedThreadPool();
+        ActionService actionService = new ActionService(robot, executorService);
+        GlobalListener listener = new GlobalListener(actionService);
 
         GlobalScreen.addNativeKeyListener(listener);
     }
