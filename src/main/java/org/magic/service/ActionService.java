@@ -6,9 +6,12 @@ import org.magic.App;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
-import java.util.HashMap;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 // service
 public class ActionService {
@@ -16,52 +19,65 @@ public class ActionService {
     private final Robot robot;
     private final ExecutorService executor;
 
-    public HashMap<Integer, Runnable> pressActions;
-    public HashMap<Integer, Runnable> releaseActions;
-
     public ActionService(Robot robot, ExecutorService executor) {
         this.robot = robot;
         this.executor = executor;
-
-        pressActions = new HashMap<Integer, Runnable>(){{
-            put(KeyEvent.VK_ESCAPE, () -> {
-                try {
-                    GlobalScreen.unregisterNativeHook();
-                    executor.shutdownNow();
-                    System.out.println("Exit...");
-                } catch (NativeHookException ex) {
-                    ex.printStackTrace();
-                }
-            });
-
-            put(KeyEvent.VK_SPACE, () ->
-                App.setLoggingLevel(Level.ALL)
-            );
-
-            put(KeyEvent.VK_N, () ->
-                App.setLoggingLevel(Level.OFF)
-            );
-
-            put(KeyEvent.VK_E, () -> {
-                try {
-                    Thread.sleep(App.properties.get("delay"));
-                    robot.keyPress(KeyEvent.VK_S);
-                    robot.keyRelease(KeyEvent.VK_S);
-                } catch(InterruptedException ignored) {}
-            });
-        }};
-
-        releaseActions = new HashMap<Integer, Runnable>(){{
-        }};
     }
 
     public void keyPress(KeyEvent keyEvent) {
-        if (pressActions.containsKey(keyEvent.getKeyCode()))
-            executor.submit(pressActions.get(keyEvent.getKeyCode()));
+        if (keyEvent.getKeyCode() == KeyEvent.VK_ESCAPE) {
+            executor.submit(this::haltProgram);
+        }
+
+        String triggerKey = App.properties.get("trigger_key");
+        String keyText = KeyEvent.getKeyText(keyEvent.getKeyCode());
+        if (keyText.equals(triggerKey))
+            executor.submit(() -> {
+                String responseKey = App.properties.get("response_key");
+                try {
+                    int delay = App.properties.get("delay");
+                    Thread.sleep(delay);
+
+                    int keyCode = textToKeyCode(responseKey);
+                    robot.keyPress(keyCode);
+                    robot.keyRelease(keyCode);
+                } catch (IllegalAccessException ex) {
+                    System.out.println(String.format("Нажимаемая клавиша [%s] не найдена", responseKey));
+                    haltProgram();
+                } catch (Exception ignored) {}
+            });
     }
 
     public void keyRelease(KeyEvent keyEvent) {
-        if (releaseActions.containsKey(keyEvent.getKeyCode()))
-            executor.submit(releaseActions.get(keyEvent.getKeyCode()));
+        // do nothing
+    }
+
+    private void haltProgram() {
+        try {
+            GlobalScreen.unregisterNativeHook();
+        } catch (NativeHookException e) {
+            e.printStackTrace();
+        }
+        executor.shutdownNow();
+        System.out.println("Exit...");
+    }
+
+    private int textToKeyCode(String text) throws IllegalAccessException {
+        Field[] declaredFields = KeyEvent.class.getDeclaredFields();
+        List<Field> fieldList = Arrays.stream(declaredFields).filter(field -> {
+            int mod = field.getModifiers();
+            return Modifier.isStatic(mod) && Modifier.isFinal(mod) && field.getType().isPrimitive();
+        }).collect(Collectors.toList());
+
+        for (Field field : fieldList) {
+            int keyCode = field.getInt(Field.class);
+            String keyText = KeyEvent.getKeyText(keyCode);
+
+            if (keyText.equals(text)) {
+                return keyCode;
+            }
+        }
+
+        return -1;
     }
 }

@@ -30,6 +30,7 @@ public class App {
     }
 
     private static void prepareProperties(String[] args) {
+        properties = new Properties();
         // default props
         Map<String, Object> defaultProperties = new HashMap<String, Object>(){{
             put("trigger_key", "E");
