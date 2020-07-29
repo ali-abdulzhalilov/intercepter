@@ -3,11 +3,11 @@ package org.magic.controller;
 import org.jnativehook.GlobalScreen;
 import org.jnativehook.NativeHookException;
 import org.jnativehook.keyboard.NativeKeyEvent;
-import org.jnativehook.keyboard.NativeKeyListener;
+import org.jnativehook.keyboard.SwingKeyAdapter;
 import org.magic.service.ActionService;
 
 // controller
-public class GlobalListener implements NativeKeyListener {
+public class GlobalListener extends SwingKeyAdapter {
 
     private final ActionService service;
 
@@ -25,19 +25,15 @@ public class GlobalListener implements NativeKeyListener {
         }
     }
 
-    public void nativeKeyPressed(NativeKeyEvent e) {
-        System.out.println("Key Pressed: " + NativeKeyEvent.getKeyText(e.getKeyCode()));
+    public void nativeKeyPressed(NativeKeyEvent event) {
+        System.out.println("Key Pressed: " + NativeKeyEvent.getKeyText(event.getKeyCode()));
 
-        service.keyPress(e.getKeyCode());
+        service.keyPress(getJavaKeyEvent(event));
     }
 
-    public void nativeKeyReleased(NativeKeyEvent e) {
-        System.out.println("Key Released: " + NativeKeyEvent.getKeyText(e.getKeyCode()));
+    public void nativeKeyReleased(NativeKeyEvent event) {
+        System.out.println("Key Released: " + NativeKeyEvent.getKeyText(event.getKeyCode()));
 
-        service.keyRelease(e.getKeyCode());
-    }
-
-    public void nativeKeyTyped(NativeKeyEvent e) {
-        System.out.println("Key Typed: " + NativeKeyEvent.getKeyText(e.getKeyCode()));
+        service.keyRelease(getJavaKeyEvent(event));
     }
 }
